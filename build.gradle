@@ -1,0 +1,15 @@
+apply plugin: 'scala'
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  compile 'org.scala-lang:scala-library:2.11.8'
+  compile 'org.scalafx:scalafx_2.11:8.0.102-R11'
+}
+
+task run(type: JavaExec, dependsOn: classes) {
+  main = 'io.github.tszypenbejl.simpledrawingapplication.DrawingApp'
+  classpath sourceSets.main.runtimeClasspath
+}
