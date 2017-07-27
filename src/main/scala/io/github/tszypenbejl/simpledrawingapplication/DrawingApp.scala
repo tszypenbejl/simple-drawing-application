@@ -6,7 +6,7 @@ import scalafx.application.JFXApp.PrimaryStage
 import scalafx.beans.property.ObjectProperty
 import scalafx.scene.Scene
 import scalafx.scene.canvas.Canvas
-import scalafx.scene.control.ColorPicker
+import scalafx.scene.control.{Button, ColorPicker}
 import scalafx.scene.input.MouseEvent
 import scalafx.scene.layout._
 import scalafx.scene.paint.Color
@@ -19,27 +19,27 @@ private class DrawingCanvas(size: Region) extends Canvas {
   private var prevPoint: (Double, Double) = null
 
   private def clearRect(x: Double, y: Double, w: Double, h: Double) = {
-    g.fill = Color.White
+    g.fill = backgroundColor.value
     g.fillRect(x, y, w, h)
   }
 
-  private def drawBrush(x: Double, y: Double) = {
-    g.fill = brushColor.value
+  private def drawBrush(x: Double, y: Double, useBackgroundColor: Boolean) = {
+    g.fill = if (useBackgroundColor) backgroundColor.value else brushColor.value
     g.fillOval(x - halfBrushSize, y - halfBrushSize, brushSize, brushSize)
     prevPoint = (x, y)
   }
 
-  private def drawLine(x: Double, y: Double) = {
+  private def drawLine(x: Double, y: Double, useBackgroundColor: Boolean) = {
     if (prevPoint ne null) {
-      g.stroke = brushColor.value
+      g.stroke = if (useBackgroundColor) backgroundColor.value else brushColor.value
       g.lineWidth = brushSize
       g.strokeLine(prevPoint._1, prevPoint._2, x, y)
     }
-    drawBrush(x, y)
+    prevPoint = (x, y)
   }
 
-  onMousePressed = (e: MouseEvent) => drawBrush(e.x, e.y)
-  onMouseDragged = (e: MouseEvent) => drawLine(e.x, e.y)
+  onMousePressed = (e: MouseEvent) => drawBrush(e.x, e.y, e.secondaryButtonDown)
+  onMouseDragged = (e: MouseEvent) => drawLine(e.x, e.y, e.secondaryButtonDown)
 
   width.onChange((_, oldVal, newVal) => {
     val oldWidth = oldVal.doubleValue
@@ -58,6 +58,7 @@ private class DrawingCanvas(size: Region) extends Canvas {
   height <== size.height
 
   val brushColor = new ObjectProperty[javafx.scene.paint.Color]
+  val backgroundColor = new ObjectProperty[javafx.scene.paint.Color]
 
 
   def clear() = clearRect(0, 0, width.value, height.value)
@@ -71,7 +72,9 @@ object DrawingApp extends JFXApp {
     minHeight = 100
     scene = new Scene {
       private var drawingCanvas: DrawingCanvas = null
-      private var colorPicker: ColorPicker = null
+      private var colorPicker1: ColorPicker = null
+      private var colorPicker2: ColorPicker = null
+      private var clearButton: Button = null;
       root = new VBox {
         children = Seq(
           new Pane {
@@ -79,11 +82,19 @@ object DrawingApp extends JFXApp {
             VBox.setVgrow(this, Priority.Always)
           },
           new HBox {
-            children = { colorPicker = new ColorPicker(Color.Black); colorPicker }
+            children = Seq(
+              { colorPicker1 = new ColorPicker(Color.Black); colorPicker1 },
+              { colorPicker2 = new ColorPicker(Color.White); colorPicker2 },
+              { clearButton = new Button("Clear"); clearButton }
+            )
+            clearButton.maxWidth = Double.MaxValue
+            HBox.setHgrow(clearButton, Priority.Always)
           }
         )
       }
-      drawingCanvas.brushColor <== colorPicker.value
+      drawingCanvas.brushColor <== colorPicker1.value
+      drawingCanvas.backgroundColor <== colorPicker2.value
+      clearButton.onAction = handle { drawingCanvas.clear() }
     }
   }
 }
